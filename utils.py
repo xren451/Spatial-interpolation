@@ -59,16 +59,9 @@ def load_metr_la_rdata():
     return A, X
 
 def load_ndbc_data():
-    X_raw = np.load('data/NDBC/all.npy')
+    X_raw = np.load('Spatial-interpolation/data/NDBC/all.npy')
     # Raw data and raw adjacency matrix without mapminmax
-    X_raw = np.load('data/NDBC/all.npy')
-    # X_raw=normalize_3d_array(X_raw)
-    Station_info = pd.read_csv('data/NDBC/Station_info.csv')
-    NDBC_lat = pd.DataFrame(Station_info.iloc[:, 1])
-    NDBC_long = pd.DataFrame(Station_info.iloc[:, 3])
-    NDBC_ID = pd.DataFrame(Station_info.iloc[:, 0])
-    Adj_dist = adj_dist(NDBC_lat, NDBC_long)
-    Station_info = pd.read_csv('data/NDBC/Station_info.csv')
+    Station_info = pd.read_csv('Spatial-interpolation/data/NDBC/Station_info.csv')
     NDBC_lat = pd.DataFrame(Station_info.iloc[:, 1])
     NDBC_long = pd.DataFrame(Station_info.iloc[:, 3])
     NDBC_ID = pd.DataFrame(Station_info.iloc[:, 0])
