@@ -1,7 +1,7 @@
 # Baseline
 
 # SSIN
-the code is [here]([https://dl.acm.org/doi/10.1145/2783258.2788573](https://github.com/xren451/Spatial-interpolation/blob/main/DingyiMa/baseline/SSIN/main_train.py))
+the code is [here](https://github.com/xren451/Spatial-interpolation/blob/main/DingyiMa/baseline/SSIN/main_train.py)
 
 # IGNNK
 the code is https://github.com/xren451/Spatial-interpolation/blob/main/DingyiMa/baseline/IGNNK/train.ipynb
