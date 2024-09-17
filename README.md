@@ -14,3 +14,6 @@ The main results on spatial kriging task can be found here:
 
 ![2 Result](Fig/results_AnchorGK.png)
 
+<p align="center">
+  <img src="Fig/results_AnchorGK.png" alt="2 Result">
+</p>
