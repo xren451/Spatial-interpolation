@@ -6,10 +6,11 @@ Spatio-Temporal Kriging". In this paper, we propose a new method for spatio-temp
 The overall architecture can be found on the following figure.
 ![1 Architecture](Fig/arch.png)
 
+<p align="center">
+  <img src="Fig/arch.png" alt="1 Architecture">
+</p>
+
 The main results on spatial kriging task can be found here:
 
 ![2 Result](Fig/results_AnchorGK.png)
 
-<center>
-  <img src="Fig/results_AnchorGK.png" alt="2 Result">
-</center>
