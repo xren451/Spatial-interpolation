@@ -59,9 +59,16 @@ def load_metr_la_rdata():
     return A, X
 
 def load_ndbc_data():
-    X_raw = np.load('Spatial-interpolation/data/NDBC/all.npy')
+    X_raw = np.load('data/NDBC/all.npy')
     # Raw data and raw adjacency matrix without mapminmax
-    Station_info = pd.read_csv('Spatial-interpolation/data/NDBC/Station_info.csv')
+    X_raw = np.load('data/NDBC/all.npy')
+    # X_raw=normalize_3d_array(X_raw)
+    Station_info = pd.read_csv('data/NDBC/Station_info.csv')
+    NDBC_lat = pd.DataFrame(Station_info.iloc[:, 1])
+    NDBC_long = pd.DataFrame(Station_info.iloc[:, 3])
+    NDBC_ID = pd.DataFrame(Station_info.iloc[:, 0])
+    Adj_dist = adj_dist(NDBC_lat, NDBC_long)
+    Station_info = pd.read_csv('data/NDBC/Station_info.csv')
     NDBC_lat = pd.DataFrame(Station_info.iloc[:, 1])
     NDBC_long = pd.DataFrame(Station_info.iloc[:, 3])
     NDBC_ID = pd.DataFrame(Station_info.iloc[:, 0])
@@ -435,6 +442,56 @@ def test_error(STmodel, unknow_set, test_data, A_s, E_maxvalue, Missing0):
     R2 = 1 - np.sum( (o_ - truth_)*(o_ - truth_) )/np.sum( (truth_ - truth_.mean())*(truth_-truth_.mean() ) )
     return MAE, RMSE, R2, o
 
+def test_error_new(STmodel, unknow_set, test_data, A_s, Missing0):
+    """
+    :param STmodel: The graph neural networks
+    :unknow_set: The unknow locations for spatial prediction
+    :test_data: The true value test_data of shape (test_num_timesteps, num_nodes)
+    :A_s: The full adjacent matrix
+    :Missing0: True: 0 in original datasets means missing data
+    :return: NAE, MAPE and RMSE
+    """
+    unknow_set = set(unknow_set)
+    time_dim = STmodel.time_dimension
+    test_omask = np.ones(test_data.shape)
+    if Missing0 == True:
+        test_omask[test_data == 0] = 0
+    test_inputs = (test_data * test_omask).astype('float32')
+    test_inputs_s = test_inputs
+    missing_index = np.ones(np.shape(test_data))
+    missing_index[:, list(unknow_set)] = 0
+    missing_index_s = missing_index
+    o = np.zeros([test_data.shape[0]//time_dim*time_dim, test_inputs_s.shape[1]]) #Separate the test data into several h period
+    for i in range(0, test_data.shape[0]//time_dim*time_dim, time_dim):
+        inputs = test_inputs_s[i:i+time_dim, :]
+        missing_inputs = missing_index_s[i:i+time_dim, :]
+        T_inputs = inputs*missing_inputs
+        flags = parse_args(sys.argv[1:])
+        E_maxvalue = flags.E_maxvalue
+        T_inputs = T_inputs/E_maxvalue
+        T_inputs = np.expand_dims(T_inputs, axis = 0)
+        T_inputs = torch.from_numpy(T_inputs.astype('float32'))
+        A_q = torch.from_numpy((calculate_random_walk_matrix(A_s).T).astype('float32'))
+        A_h = torch.from_numpy((calculate_random_walk_matrix(A_s.T).T).astype('float32'))
+        imputation = STmodel(T_inputs, A_q, A_h)
+        imputation = imputation.data.numpy()
+        o[i:i+time_dim, :] = imputation[0, :, :]
+    flags = parse_args(sys.argv[1:])
+    dataset=flags.dataset
+    if dataset == 'NREL':
+        dataset=dataset
+    else:
+        o = o*E_maxvalue
+    truth = test_inputs_s[0:test_inputs.shape[0]//time_dim*time_dim]
+    o[missing_index_s[0:test_inputs.shape[0]//time_dim*time_dim] == 1] = truth[missing_index_s[0:test_inputs.shape[0]//time_dim*time_dim] == 1]
+    test_mask =  1 - missing_index_s[0:test_inputs.shape[0]//time_dim*time_dim]
+    if Missing0 == True:
+        test_mask[truth == 0] = 0
+        o[truth == 0] = 0
+    MAE = np.sum(np.abs(o - truth))/np.sum( test_mask)
+    RMSE = np.sqrt(np.sum((o - truth)*(o - truth))/np.sum( test_mask) )
+    MAPE = np.sum(np.abs(o - truth)/(truth + 1e-5))/np.sum( test_mask)
+    return MAE, RMSE, MAPE
 
 def rolling_test_error(STmodel, unknow_set, test_data, A_s, E_maxvalue,Missing0):
     """
@@ -539,3 +596,640 @@ def test_error_cap(STmodel, unknow_set, full_set, test_set, A,time_dim,capacitie
     # MAPE = np.sum(np.abs(o - truth)/(truth + 1e-5))/np.sum( test_mask)
     R2 = 1 - np.sum( (o_ - truth_)*(o_ - truth_) )/np.sum( (truth_ - truth_.mean())*(truth_-truth_.mean() ) )
     return MAE, RMSE, R2, o
+    
+def load_data_MI(dataset):
+    '''Load dataset
+    Input: dataset name
+    Returns
+    -------
+    A: adjacency matrix
+    X: processed data
+    capacity: only works for NREL, each station's capacity
+    '''
+    capacity = []
+    if dataset == 'metr':
+        A, X = load_metr_la_rdata()
+        X = X[:,0,:]
+    elif dataset == 'nrel':
+        A, X , files_info = load_nerl_data()
+        #For Nrel, We only use 7:00am to 7:00pm as the target data, because otherwise the 0-values of periods without sunshine will greatly influence the results
+        time_used_base = np.arange(84,228)
+        time_used = np.array([])
+        for i in range(365):
+            time_used = np.concatenate((time_used,time_used_base + 24*12* i))
+        X=X[:,time_used.astype(np.int)]
+        capacities = np.array(files_info['capacity'])
+        capacities = capacities.astype('float32')
+    elif dataset == 'ndbc':
+        A, X = load_ndbc_data()
+        print("A's shape is:",A.shape)# A's shape is: (93, 93)
+        print("X's shape is:",X.shape)#X's shape is: (93, 8784)
+    elif dataset == 'ushcn':
+        A,X,Omissing = load_udata()
+        X = X[:,:,:,0]
+        X = X.reshape(1218,120*12)
+        X = X/100
+    elif dataset == 'sedata':
+        A, X = load_sedata()
+        A = A.astype('float32')
+        X = X.astype('float32')
+    elif dataset == 'pems':
+        A,X = load_pems_data()
+    else:
+        raise NotImplementedError('Please specify datasets from: metr, nrel, ushcn, sedata or pems')
+    split_line1 = int(X.shape[1] * 0.7)
+    training_set = X[:,:split_line1].transpose()
+    test_set = X[:, split_line1:].transpose()       # split the training and test period
+    rand = np.random.RandomState(0) # Fixed random output
+    Station_info=pd.read_csv('data/NDBC/Station_info.csv')
+    NDBC_lat=pd.DataFrame(Station_info.iloc[:,1])
+    NDBC_long=pd.DataFrame(Station_info.iloc[:,3])
+    NDBC_ID=pd.DataFrame(Station_info.iloc[:,0])
+    Adj_dist=adj_dist(NDBC_lat,NDBC_long)
+    # Read all data
+    pathroot = 'data/NDBC/all_stations'
+    PATH_ROOT = os.getcwd()
+    ROOT = os.path.join(PATH_ROOT, pathroot)
+    filenames = os.listdir(ROOT)
+    # Sort all files
+    filenames.sort()
+    data = []
+    for i in filenames:
+        PATH_CSV = os.path.join(ROOT, i)
+        with open(PATH_CSV, 'r') as file:
+            # Use splitlines() to divide contents in the documents into lists.
+            content_list = file.read().splitlines()
+        # Transform lists into Numpy.
+        content_matrix = np.array([list(map(float, line.split())) for line in content_list])
+        data.append(content_matrix)
+    data = np.array(data).transpose(1, 2, 0)
+    X_raw = data
+    j=5#J-th colum, start from 5 as the first feature.
+    X_raw_0=X_raw[:,j,:]#GET the first feature
+    print(X_raw_0.shape)
+    # Count the num of missing values in each column
+    missing_counts_per_column = np.sum(np.isnan(X_raw_0), axis=0)
+    # print results
+    print("Incomplete data number in each column：", missing_counts_per_column)
+
+    #Get the index if the value is not zero
+    # Find the columns where missing values exist.
+    columns_with_missing_data = np.any(np.isnan(X_raw_0), axis=0)
+
+    # Get the column numbers when missing value exist.
+    missing_columns = np.where(columns_with_missing_data)[0]
+
+    # Print results
+    print("The column numbers with missing values are：", missing_columns)
+
+    # Get new data after deletion.
+    # Delete those columns (Stations) if there is not any features.
+    result = np.delete(X_raw_0, missing_columns, axis=1)
+    result = (result - np.min(result)) / (np.max(result) - np.min(result))
+    print(result.shape)#(8784, 93)
+    flags = parse_args(sys.argv[1:])
+    N_u = flags.n_u
+    #Determine group num here
+    group_num=result.shape[1]-N_u
+
+    # Initialize MI_store
+    MI_store = np.zeros((result.shape[1], result.shape[1]))
+
+    # Calculate mutual information
+    for i in range(result.shape[1]):
+        for j in range(result.shape[1]):
+            MI_store[i, j] = calc_MI(result[:, i], result[:, j], 10)
+
+    # Return column numbers and corresponding mutual information
+    column_numbers = []
+    MI_values = []
+
+    for i in range(MI_store.shape[0]):
+        row = MI_store[i, :]
+        row_index = np.arange(MI_store.shape[0])
+        row_index = np.delete(row_index, i)  # Exclude the current row's index
+        sorted_indices = np.argsort(row[row_index])
+        max_indices = row_index[sorted_indices[-group_num:][::-1]]  # Get largest column_num
+        column_numbers.append(max_indices)
+        MI_values.append([row[j] for j in max_indices])
+
+    # Output results
+    for i, (columns, values) in enumerate(zip(column_numbers, MI_values)):
+        print(f"Row {i} - Column Numbers: {columns}, MI Values: {values}")
+
+
+    know_set=np.array(column_numbers)[random.randint(0, X.shape[0]-1),:]
+    know_set=set(know_set)
+    full_set = set(range(0,X.shape[0]))
+    unknow_set = full_set - know_set
+    training_set_s = training_set[:, list(know_set)]   # get the training data in the sample time period
+    A_s = A[:, list(know_set)][list(know_set), :]      # get the observed adjacent matrix from the full adjacent matrix,
+                                                    # the adjacent matrix are based on pairwise distance,
+                                                    # so we need not to construct it for each batch, we just use index to find the dynamic adjacent matrix
+    return A,X,training_set,test_set,unknow_set,full_set,know_set,training_set_s,A_s,capacity
+
+import torch
+import numpy as np
+import torch.optim as optim
+from torch import nn
+import matplotlib.pyplot as plt
+from utils import *
+import random
+import pandas as pd
+from basic_structure import IGNNK
+from basic_process import *
+import argparse
+import sys
+import os
+import time
+def parse_args(args):
+    '''Parse training options user can specify in command line.
+    Specify hyper parameters here
+    Returns
+    -------
+    argparse.Namespace
+        the output parser object
+    '''
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description="Parse argument used when training IGNNK model.",
+        epilog="python IGNNK_train.py DATASET, for example: python IGNNK_train.py 'metr' ")
+    # Requird input parametrs
+    parser.add_argument(
+        'dataset',type=str,default='metr',
+        help = 'Name of the datasets, select from metr,ndbc, nrel, ushcn, sedata or pems'
+    )
+    # optional input parameters
+    parser.add_argument(
+        '--n_o',type=int,default=20,
+        help='sampled space dimension'
+    )
+    parser.add_argument(
+        '--h',type=int,default=24,
+        help='sampled time dimension'
+    )
+    parser.add_argument(
+        '--z',type=int,default=100,
+        help='hidden dimension for graph convolution'
+    )
+    parser.add_argument(
+        '--K',type=int,default=1,
+        help='If using diffusion convolution, the actual diffusion convolution step is K+1'
+    )
+    parser.add_argument(
+        '--n_m',type=int,default=10,
+        help='number of mask node during training'
+    )
+    parser.add_argument(
+        '--n_u',type=int,default=50,
+        help='target locations, n_u locations will be deleted from the training data'
+    )
+    parser.add_argument(
+        '--max_iter',type=int,default=100,
+        help='max training episode'
+    )
+    parser.add_argument(
+        '--learning_rate',type=float,default=0.0001,
+        help='the learning_rate for Adam optimizer'
+    )
+    parser.add_argument(
+        '--E_maxvalue',type=int,default=80,
+        help='the max value from experience'
+    )
+    parser.add_argument(
+        '--batch_size',type=int,default=4,
+        help='Batch size'
+    )
+    parser.add_argument(
+        '--to_plot',type=bool,default=True,
+        help='Whether to plot the RMSE training result'
+    )
+    return parser.parse_known_args(args)[0]
+def load_data(dataset):
+    '''Load dataset
+    Input: dataset name
+    Returns
+    -------
+    A: adjacency matrix
+    X: processed data
+    capacity: only works for NREL, each station's capacity
+    '''
+    capacity = []
+    if dataset == 'metr':
+        A, X = load_metr_la_rdata()
+        X = X[:,0,:]
+    elif dataset == 'nrel':
+        A, X , files_info = load_nerl_data()
+        #For Nrel, We only use 7:00am to 7:00pm as the target data, because otherwise the 0-values of periods without sunshine will greatly influence the results
+        time_used_base = np.arange(84,228)
+        time_used = np.array([])
+        for i in range(365):
+            time_used = np.concatenate((time_used,time_used_base + 24*12* i))
+        X=X[:,time_used.astype(np.int)]
+        capacities = np.array(files_info['capacity'])
+        capacities = capacities.astype('float32')
+    elif dataset == 'ndbc':
+        A, X = load_ndbc_data()
+        print("A's shape is:",A.shape)# A's shape is: (93, 93)
+        print("X's shape is:",X.shape)#X's shape is: (93, 8784)
+    elif dataset == 'ushcn':
+        A,X,Omissing = load_udata()
+        X = X[:,:,:,0]
+        X = X.reshape(1218,120*12)
+        X = X/100
+    elif dataset == 'sedata':
+        A, X = load_sedata()
+        A = A.astype('float32')
+        X = X.astype('float32')
+    elif dataset == 'pems':
+        A,X = load_pems_data()
+    else:
+        raise NotImplementedError('Please specify datasets from: metr, nrel, ushcn, sedata or pems')
+    split_line1 = int(X.shape[1] * 0.7)
+    training_set = X[:,:split_line1].transpose()
+    test_set = X[:, split_line1:].transpose()       # split the training and test period
+    rand = np.random.RandomState(0) # Fixed random output
+    unknow_set = rand.choice(list(range(0,X.shape[0])),n_u,replace=False)
+    unknow_set = set(unknow_set)
+    full_set = set(range(0,X.shape[0]))
+    know_set = full_set - unknow_set
+    training_set_s = training_set[:, list(know_set)]   # get the training data in the sample time period
+    A_s = A[:, list(know_set)][list(know_set), :]      # get the observed adjacent matrix from the full adjacent matrix,
+                                                    # the adjacent matrix are based on pairwise distance,
+                                                    # so we need not to construct it for each batch, we just use index to find the dynamic adjacent matrix
+    return A,X,training_set,test_set,unknow_set,full_set,know_set,training_set_s,A_s,capacity
+
+def load_data(dataset): ###Raw load data document
+    '''Load dataset
+    Input: dataset name
+    Returns
+    -------
+    A: adjacency matrix
+    X: processed data
+    capacity: only works for NREL, each station's capacity
+    '''
+    capacity = []
+    if dataset == 'metr':
+        A, X = load_metr_la_rdata()
+        X = X[:,0,:]
+    elif dataset == 'nrel':
+        A, X , files_info = load_nerl_data()
+        #For Nrel, We only use 7:00am to 7:00pm as the target data, because otherwise the 0-values of periods without sunshine will greatly influence the results
+        time_used_base = np.arange(84,228)
+        time_used = np.array([])
+        for i in range(365):
+            time_used = np.concatenate((time_used,time_used_base + 24*12* i))
+        X=X[:,time_used.astype(np.int)]
+        capacities = np.array(files_info['capacity'])
+        capacities = capacities.astype('float32')
+    elif dataset == 'ndbc':
+        A, X = load_ndbc_data()
+        print("A's shape is:",A.shape)# A's shape is: (93, 93)
+        print("X's shape is:",X.shape)#X's shape is: (93, 8784)
+    elif dataset == 'ushcn':
+        A,X,Omissing = load_udata()
+        X = X[:,:,:,0]
+        X = X.reshape(1218,120*12)
+        X = X/100
+    elif dataset == 'sedata':
+        A, X = load_sedata()
+        A = A.astype('float32')
+        X = X.astype('float32')
+    elif dataset == 'pems':
+        A,X = load_pems_data()
+    else:
+        raise NotImplementedError('Please specify datasets from: metr, nrel, ushcn, sedata or pems')
+    split_line1 = int(X.shape[1] * 0.7)
+    training_set = X[:,:split_line1].transpose()
+    test_set = X[:, split_line1:].transpose()       # split the training and test period
+    rand = np.random.RandomState(0) # Fixed random output
+    unknow_set = rand.choice(list(range(0,X.shape[0])),n_u,replace=False)
+    unknow_set = set(unknow_set)
+    full_set = set(range(0,X.shape[0]))
+    know_set = full_set - unknow_set
+    training_set_s = training_set[:, list(know_set)]   # get the training data in the sample time period
+    A_s = A[:, list(know_set)][list(know_set), :]      # get the observed adjacent matrix from the full adjacent matrix,
+                                                    # the adjacent matrix are based on pairwise distance,
+                                                    # so we need not to construct it for each batch, we just use index to find the dynamic adjacent matrix
+    return A,X,training_set,test_set,unknow_set,full_set,know_set,training_set_s,A_s,capacity
+"""
+Define the test error
+"""
+def test_error(STmodel, unknow_set, test_data, A_s, Missing0):
+    """
+    :param STmodel: The graph neural networks
+    :unknow_set: The unknow locations for spatial prediction
+    :test_data: The true value test_data of shape (test_num_timesteps, num_nodes)
+    :A_s: The full adjacent matrix
+    :Missing0: True: 0 in original datasets means missing data
+    :return: NAE, MAPE and RMSE
+    """
+    E_maxvalue = 80
+    unknow_set = set(unknow_set)
+    time_dim = STmodel.time_dimension
+    test_omask = np.ones(test_data.shape)
+    if Missing0 == True:
+        test_omask[test_data == 0] = 0
+    test_inputs = (test_data * test_omask).astype('float32')
+    test_inputs_s = test_inputs
+    missing_index = np.ones(np.shape(test_data))
+    missing_index[:, list(unknow_set)] = 0
+    missing_index_s = missing_index
+    o = np.zeros([test_data.shape[0]//time_dim*time_dim, test_inputs_s.shape[1]]) #Separate the test data into several h period
+    for i in range(0, test_data.shape[0]//time_dim*time_dim, time_dim):
+        inputs = test_inputs_s[i:i+time_dim, :]
+        missing_inputs = missing_index_s[i:i+time_dim, :]
+        T_inputs = inputs*missing_inputs
+        T_inputs = T_inputs/E_maxvalue
+        T_inputs = np.expand_dims(T_inputs, axis = 0)
+        T_inputs = torch.from_numpy(T_inputs.astype('float32'))
+        A_q = torch.from_numpy((calculate_random_walk_matrix(A_s).T).astype('float32'))
+        A_h = torch.from_numpy((calculate_random_walk_matrix(A_s.T).T).astype('float32'))
+        imputation = STmodel(T_inputs, A_q, A_h)
+        imputation = imputation.data.numpy()
+        o[i:i+time_dim, :] = imputation[0, :, :]
+    if dataset == 'NREL':
+        o = o*capacities[None,:]
+    else:
+        o = o*E_maxvalue
+    truth = test_inputs_s[0:test_set.shape[0]//time_dim*time_dim]
+    o[missing_index_s[0:test_set.shape[0]//time_dim*time_dim] == 1] = truth[missing_index_s[0:test_set.shape[0]//time_dim*time_dim] == 1]
+    test_mask =  1 - missing_index_s[0:test_set.shape[0]//time_dim*time_dim]
+    if Missing0 == True:
+        test_mask[truth == 0] = 0
+        o[truth == 0] = 0
+    MAE = np.sum(np.abs(o - truth))/np.sum( test_mask)
+    RMSE = np.sqrt(np.sum((o - truth)*(o - truth))/np.sum( test_mask) )
+    MAPE = np.sum(np.abs(o - truth)/(truth + 1e-5))/np.sum( test_mask)
+    return MAE, RMSE, MAPE
+def rolling_test_error(STmodel, unknow_set, test_data, A_s, Missing0):
+    """
+    :It only calculates the last time points' prediction error, and updates inputs each time point
+    :param STmodel: The graph neural networks
+    :unknow_set: The unknow locations for spatial prediction
+    :test_data: The true value test_data of shape (test_num_timesteps, num_nodes)
+    :A_s: The full adjacent matrix
+    :Missing0: True: 0 in original datasets means missing data
+    :return: NAE, MAPE and RMSE
+    """
+    E_maxvalue = 80
+    unknow_set = set(unknow_set)
+    time_dim = STmodel.time_dimension
+    test_omask = np.ones(test_data.shape)
+    if Missing0 == True:
+        test_omask[test_data == 0] = 0
+    test_inputs = (test_data * test_omask).astype('float32')
+    test_inputs_s = test_inputs
+    missing_index = np.ones(np.shape(test_data))
+    missing_index[:, list(unknow_set)] = 0
+    missing_index_s = missing_index
+    o = np.zeros([test_set.shape[0] - time_dim, test_inputs_s.shape[1]])
+    for i in range(0, test_set.shape[0] - time_dim):
+        inputs = test_inputs_s[i:i+time_dim, :]
+        missing_inputs = missing_index_s[i:i+time_dim, :]
+        MF_inputs = inputs * missing_inputs
+        MF_inputs = np.expand_dims(MF_inputs, axis = 0)
+        MF_inputs = torch.from_numpy(MF_inputs.astype('float32'))
+        A_q = torch.from_numpy((calculate_random_walk_matrix(A_s).T).astype('float32'))
+        A_h = torch.from_numpy((calculate_random_walk_matrix(A_s.T).T).astype('float32'))
+        imputation = STmodel(MF_inputs, A_q, A_h)
+        imputation = imputation.data.numpy()
+        o[i, :] = imputation[0, time_dim-1, :]
+    truth = test_inputs_s[time_dim:test_set.shape[0]]
+    o[missing_index_s[time_dim:test_set.shape[0]] == 1] = truth[missing_index_s[time_dim:test_set.shape[0]] == 1]
+    if dataset == 'NREL':
+        o = o*capacities[None,:]
+    else:
+        o = o*E_maxvalue
+    truth = test_inputs_s[0:test_set.shape[0]//time_dim*time_dim]
+    test_mask =  1 - missing_index_s[time_dim:test_set.shape[0]]
+    if Missing0 == True:
+        test_mask[truth == 0] = 0
+        o[truth == 0] = 0
+    MAE = np.sum(np.abs(o - truth))/np.sum( test_mask)
+    RMSE = np.sqrt(np.sum((o - truth)*(o - truth))/np.sum( test_mask) )
+    MAPE = np.sum(np.abs(o - truth)/(truth + 1e-5))/np.sum( test_mask)  #avoid x/0
+    return MAE, RMSE, MAPE
+def plot_res(RMSE_list,dataset,time_batch):
+    """
+    Draw Learning curves on testing error
+    """
+    fig,ax = plt.subplots()
+    ax.plot(RMSE_list,label='RMSE_on_test_set',linewidth=3.5)
+    ax.set_xlabel('Training Batch (x{:})'.format(time_batch),fontsize=20)
+    ax.set_ylabel('RMSE',fontsize=20)
+    ax.tick_params(axis="x", labelsize=14)
+    ax.tick_params(axis="y", labelsize=14)
+    ax.legend(fontsize=16)
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig('fig/learning_curve_{:}.pdf'.format(dataset))
+def parse_args(args):
+        '''Parse training options user can specify in command line.
+        Specify hyper parameters here
+        Returns
+        -------
+        argparse.Namespace
+            the output parser object
+        '''
+        parser = argparse.ArgumentParser(
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description="Parse argument used when training IGNNK model.",
+            epilog="python IGNNK_train.py DATASET, for example: python IGNNK_train.py 'metr' ")
+        # Requird input parametrs
+        parser.add_argument(
+            'dataset', type=str, default='metr',
+            help='Name of the datasets, select from metr,ndbc, nrel, ushcn, sedata or pems'
+        )
+        # optional input parameters
+        parser.add_argument(
+            '--n_o', type=int, default=20,
+            help='sampled space dimension'
+        )
+        parser.add_argument(
+            '--h', type=int, default=24,
+            help='sampled time dimension'
+        )
+        parser.add_argument(
+            '--z', type=int, default=100,
+            help='hidden dimension for graph convolution'
+        )
+        parser.add_argument(
+            '--K', type=int, default=1,
+            help='If using diffusion convolution, the actual diffusion convolution step is K+1'
+        )
+        parser.add_argument(
+            '--n_m', type=int, default=10,
+            help='number of mask node during training'
+        )
+        parser.add_argument(
+            '--n_u', type=int, default=50,
+            help='target locations, n_u locations will be deleted from the training data'
+        )
+        parser.add_argument(
+            '--max_iter', type=int, default=100,
+            help='max training episode'
+        )
+        parser.add_argument(
+            '--learning_rate', type=float, default=0.0001,
+            help='the learning_rate for Adam optimizer'
+        )
+        parser.add_argument(
+            '--E_maxvalue', type=int, default=80,
+            help='the max value from experience'
+        )
+        parser.add_argument(
+            '--batch_size', type=int, default=4,
+            help='Batch size'
+        )
+        parser.add_argument(
+            '--to_plot', type=bool, default=True,
+            help='Whether to plot the RMSE training result'
+        )
+        return parser.parse_known_args(args)[0]
+def load_data_MI_3D(dataset):
+    '''Load dataset
+    Input: dataset name
+    Returns
+    -------
+    A: adjacency matrix
+    X: processed data
+    capacity: only works for NREL, each station's capacity
+    '''
+    capacity = []
+    if dataset == 'metr':
+        A, X = load_metr_la_rdata()
+        X = X[:,0,:]
+    elif dataset == 'nrel':
+        A, X , files_info = load_nerl_data()
+        #For Nrel, We only use 7:00am to 7:00pm as the target data, because otherwise the 0-values of periods without sunshine will greatly influence the results
+        time_used_base = np.arange(84,228)
+        time_used = np.array([])
+        for i in range(365):
+            time_used = np.concatenate((time_used,time_used_base + 24*12* i))
+        X=X[:,time_used.astype(np.int)]
+        capacities = np.array(files_info['capacity'])
+        capacities = capacities.astype('float32')
+    elif dataset == 'ndbc':
+        A, X = load_ndbc_data()
+        print("A's shape is:",A.shape)# A's shape is: (93, 93)
+        print("X's shape is:",X.shape)#X's shape is: (93, 8784)
+    elif dataset == 'ushcn':
+        A,X,Omissing = load_udata()
+        X = X[:,:,:,0]
+        X = X.reshape(1218,120*12)
+        X = X/100
+    elif dataset == 'sedata':
+        A, X = load_sedata()
+        A = A.astype('float32')
+        X = X.astype('float32')
+    elif dataset == 'pems':
+        A,X = load_pems_data()
+    else:
+        raise NotImplementedError('Please specify datasets from: metr, nrel, ushcn, sedata or pems')
+    split_line1 = int(X.shape[1] * 0.7)
+    training_set = X[:,:split_line1].transpose()
+    test_set = X[:, split_line1:].transpose()       # split the training and test period
+    rand = np.random.RandomState(0) # Fixed random output
+    Station_info = pd.read_csv('/home/xren451/rxb/phd/Spatial_interpolation/XBSPA/ModIGNNK/NDBC/Station_info.csv')
+    NDBC_lat=pd.DataFrame(Station_info.iloc[:,1])
+    NDBC_long=pd.DataFrame(Station_info.iloc[:,3])
+    NDBC_ID=pd.DataFrame(Station_info.iloc[:,0])
+    Adj_dist=adj_dist(NDBC_lat,NDBC_long)
+
+    split_line1 = int(X.shape[1] * 0.7)
+    training_set = X[:,:split_line1].transpose()
+    test_set = X[:, split_line1:].transpose()       # split the training and test period
+    rand = np.random.RandomState(0) # Fixed random output
+
+    j=5#J-th colum, start from 5 as the first feature.
+    pathroot='/home/xren451/rxb/phd/Spatial_interpolation/XBSPA/ModIGNNK/NDBC/all_stations'
+    PATH_ROOT = os.getcwd()
+    ROOT = os.path.join(PATH_ROOT, pathroot)
+    filenames = os.listdir(ROOT)
+    # Sort all files
+    filenames.sort()
+    data = []
+    for i in filenames:
+        PATH_CSV = os.path.join(ROOT, i)
+        with open(PATH_CSV, 'r') as file:
+    # Use splitlines() to divide contents in the documents into lists.
+            content_list = file.read().splitlines()
+    # Transform lists into Numpy.
+        content_matrix = np.array([list(map(float, line.split())) for line in content_list])
+        data.append(content_matrix)
+    data = np.array(data).transpose(1, 2, 0)
+    X_raw=data
+    X_raw_0=X_raw[:,j,:]#GET the first feature
+    print(X_raw_0.shape)
+    # Count the num of missing values in each column
+    missing_counts_per_column = np.sum(np.isnan(X_raw_0), axis=0)
+    # print results
+    print("Incomplete data number in each column：", missing_counts_per_column)
+
+    #Get the index if the value is not zero
+    # Find the columns where missing values exist.
+    columns_with_missing_data = np.any(np.isnan(X_raw_0), axis=0)
+
+    # Get the column numbers when missing value exist.
+    missing_columns = np.where(columns_with_missing_data)[0]
+
+    # Print results
+    print("The column numbers with missing values are：", missing_columns)
+
+    # Get new data after deletion.
+    # Delete those columns (Stations) if there is not any features.
+    result = np.delete(X_raw_0, missing_columns, axis=1)
+    result = (result - np.min(result)) / (np.max(result) - np.min(result))
+    print(result.shape)#(8784, 93)
+
+    #Determine group num here
+    flags = parse_args(sys.argv[1:])
+    N_u=flags.n_u
+    group_num=result.shape[1]-N_u
+
+    # Initialize MI_store
+    MI_store = np.zeros((result.shape[1], result.shape[1]))
+
+    # Calculate mutual information
+    for i in range(result.shape[1]):
+        for j in range(result.shape[1]):
+            MI_store[i, j] = calc_MI(result[:, i], result[:, j], 10)
+
+    # Return column numbers and corresponding mutual information
+    column_numbers = []
+    MI_values = []
+
+    for i in range(MI_store.shape[0]):
+        row = MI_store[i, :]
+        row_index = np.arange(MI_store.shape[0])
+        row_index = np.delete(row_index, i)  # Exclude the current row's index
+        sorted_indices = np.argsort(row[row_index])
+        max_indices = row_index[sorted_indices[-group_num:][::-1]]  # Get largest column_num
+        column_numbers.append(max_indices)
+        MI_values.append([row[j] for j in max_indices])
+
+    # Output results
+    for i, (columns, values) in enumerate(zip(column_numbers, MI_values)):
+        print(f"Row {i} - Column Numbers: {columns}, MI Values: {values}")
+
+    #Step1: Use full_set
+    full_set = set(range(0,X.shape[0]))
+    #Step2: Use column_numbers to be the know_set,know_set is the list
+    know_set_2D=column_numbers
+    #Step3: Get the unknow_set.
+    unknow_set_2D={}
+    for i in range (len(know_set_2D)):
+        unknow_set_2D[i]=full_set-set(know_set_2D[i])
+    know_set=np.array(column_numbers)[random.randint(0, X.shape[0]-1),:]# For an arbitray row(station), return closest neighbors to be known set.
+    know_set=set(know_set)
+    unknow_set = full_set - know_set
+    training_set_s = training_set[:, list(know_set)]   # get the training data in the sample time period
+    A_s = A[:, list(know_set)][list(know_set), :]      # get the observed adjacent matrix from the full adjacent matrix,
+                                                    # the adjacent matrix are based on pairwise distance,
+                                                    # so we need not to construct it for each batch, we just use index to find the dynamic adjacent matrix
+    training_set_s_3D=[]
+    for i in range(len(know_set_2D)):
+        training_set_s_3D.append(training_set[:, list(know_set_2D[i])])
+    training_set_s_3D=np.array(training_set_s_3D)
+    return A,X,training_set,test_set,unknow_set,full_set,know_set,training_set_s,A_s,capacity,unknow_set_2D,know_set_2D,training_set_s_3D

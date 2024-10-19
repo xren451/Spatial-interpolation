@@ -61,7 +61,7 @@ class D_GCN(nn.Module):
                 x1, x0 = x2, x1
                 
         x = torch.reshape(x, shape=[self.num_matrices, num_node, input_size, batch_size])
-        x = x.permute(3, 1, 2, 0)  # (batch_size, num_nodes, input_size, order)
+        x = x.permute(3, 1, 2, 0)  # (batch_size, num_nodes, input_size, order)parse_args
         x = torch.reshape(x, shape=[batch_size, num_node, input_size * self.num_matrices])         
         x = torch.matmul(x, self.Theta1)  # (batch_size * self._num_nodes, output_size)     
         x += self.bias
@@ -261,4 +261,91 @@ class IGNNK(nn.Module):
 
         X_res = X_s3.permute(0, 2, 1)
                
+        return X_res
+
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+import numpy as np
+from torch_geometric.nn import GCNConv
+
+# Define the Graph Convolutional Layer
+class GraphConvolution(nn.Module):
+    def __init__(self, in_features, out_features):
+        super(GraphConvolution, self).__init__()
+        self.linear = nn.Linear(in_features, out_features)
+
+    def forward(self, x, adj_matrix):
+        out = torch.matmul(adj_matrix, x)  # Aggregate neighborhood information
+        out = self.linear(out)  # Linear transformation
+        return out
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+import numpy as np
+from torch_geometric.nn import GCNConv
+
+# Define the Graph Convolutional Layer
+class GraphConvolution(nn.Module):
+    def __init__(self, in_features, out_features):
+        super(GraphConvolution, self).__init__()
+        self.linear = nn.Linear(in_features, out_features)
+
+    def forward(self, x, adj_matrix):
+        out = torch.matmul(adj_matrix, x)  # Aggregate neighborhood information
+        out = self.linear(out)  # Linear transformation
+        return out
+class GMOE_GCN(nn.Module):
+    """
+    GNN on ST datasets to reconstruct the datasets
+   x_s
+    |GNN_3
+   H_2 + H_1
+    |GNN_2
+   H_1
+    |GNN_1
+  x^y_m
+    """
+
+    def __init__(self, h, z, k,num_experts,in_features,out_features):
+        super(GMOE_GCN, self).__init__()
+        self.time_dimension = h
+        self.hidden_dimnesion = z
+        self.order = k
+        self.linear = nn.Linear(in_features, out_features)
+
+        self.GNN1 = D_GCN(self.time_dimension, self.hidden_dimnesion, self.order)
+        self.GNN2 = D_GCN(self.hidden_dimnesion, self.hidden_dimnesion, self.order)
+        self.GNN3 = D_GCN(self.hidden_dimnesion, self.time_dimension, self.order, activation='linear')
+        # Set the data type of model parameters to Float----GPT modification
+        self.GNN1.apply(self.set_parameters_to_float)
+        self.GNN2.apply(self.set_parameters_to_float)
+        self.GNN3.apply(self.set_parameters_to_float)
+        self.num_experts = num_experts
+        self.experts = nn.ModuleList([GraphConvolution(in_features, out_features) for _ in range(num_experts)])
+        self.gate = nn.Linear(in_features, num_experts)
+
+    def set_parameters_to_float(self, module):
+        for param in module.parameters():
+            param.data = param.data.float()
+
+    def forward(self, X, A_q, A_h):
+        """
+        :param X: Input data of shape (batch_size, num_timesteps, num_nodes)
+        :A_q: The forward random walk matrix (num_nodes, num_nodes)
+        :A_h: The backward random walk matrix (num_nodes, num_nodes)
+        :return: Reconstructed X of shape (batch_size, num_timesteps, num_nodes)
+        """
+        X_S = X.permute(0, 2, 1)  # to correct the input dims
+
+        X_s1 = self.GNN1(X_S, A_q, A_h)
+        X_s2 = self.GNN2(X_s1, A_q, A_h) + X_s1  # num_nodes, rank
+        X_s3 = self.GNN3(X_s2, A_q, A_h)
+
+        X_res = X_s3.permute(0, 2, 1)
+
         return X_res
