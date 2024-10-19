@@ -10,11 +10,10 @@ The datasets are shown in data folder.
 
 Baseline models are shown in the baseline folder. 
 
-AnchorGK architecture can be found on the following figure (arch.png).
+AnchorGK architecture and  the main results can be found in the following figures (arch.png and results_AnchorGK.png).
 
 ![1 Architecture](arch.png)
 
-Also, the main results can be found in the following figure (results_AnchorGK.png).
 ![2 Result](results_AnchorGK.png)
 
 Enjoy and welcome!
