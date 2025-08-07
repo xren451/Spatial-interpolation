@@ -9,19 +9,17 @@ Among DL-based approaches, [**KCN**](https://arxiv.org/pdf/2306.09463), [**SSIN*
 
 The detailed comparisons can be found on:
 
-### 🔍 **Comparison of Spatial-Temporal Kriging and Graph-Based Models**
+### 🔍 Comparison of Spatial-Temporal Kriging and Graph-Based Models
 
-| **Model** | **Strata**<br>**Awareness** | **Inductive**<br>**Learning** | **Training**<br>**Strategy** | **Spatial**<br>**Sparsity** | **Incomplete**<br>**Features** | **Multivariate**<br>**Support** | **Efficiency** | **Strengths** | **Limitations** |
+| **Model** | **Strata**<br>**Aware** | **Inductive** | **Incremental** | **Sparse** | **Incomplete** | **Multi-**<br>**variate** | **Effi-**<br>**ciency** | **Strengths** | **Limitations** |
 | :-- | :--: | :--: | :--: | :--: | :--: | :--: | :--: | :-- | :-- |
-| **OK**<br>(Ordinary Kriging) | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | Moderate | Classic geostatistical<br>baseline | Not scalable;<br>ignores heterogeneity |
-| **IDW**<br>(Inverse Distance Weighting) | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | High | Simple; no training<br>required | Ignores spatial<br>correlation |
-| **GHM**<br>(Generalised Heterogeneity Model) | ✔ | ✗ | ✗ | ✔ | ✗ | ✗ | Medium | Captures stratified<br>spatial variation | Non-inductive;<br>fixed graph |
-| [**KCN**](https://arxiv.org/pdf/2306.09463) | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | Medium | CNN-based spatial<br>feature learning | Fails on missing<br>or multivariate data |
-| [**IGNNK**](https://openreview.net/forum?id=jeBic1U1KXz) | ✗ | ✔ | ✗ | ✗ | ✗ | ✗ | High | Inductive kriging<br>via GNN | No support for strata;<br>incomplete features |
-| [**INCREASE**](https://arxiv.org/abs/2302.02738) | ✗ | ✔ | ✗ | ✗ | ✗ | ✗ | Medium | Inductive generalisation<br>ability | Lacks support for<br>sparse and multivariate |
-| [**STGNP**](https://dl.acm.org/doi/pdf/10.1145/3580305.3599372) | ✗ | ✔ | ✗ | ✗ | ✗ | ✔ | Medium | Multivariate<br>temporal modeling | Poor handling of<br>incomplete features |
-| [**KITS**](https://arxiv.org/pdf/2311.02565) | ✗ | ✔ | ✔ | ✔ | ✗ | ✗ | Low | Supports sparsity<br>and incremental updates | Biased by pseudo<br>nodes; no multivariate |
-| [**SSIN**](https://arxiv.org/pdf/2311.15530) | ✗ | ✔ | ✗ | ✗ | ✗ | ✗ | Medium | Lightweight and<br>spatially aware | Lacks support for<br>missing/multivariate |
-| **AnchorGK**<br>(Proposed) | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | High | Full support for<br>sparse, incomplete,<br>multivariate data | Scalability to<br>larger graphs TBD |
-
-
+| **OK**<br>(Ordinary Kriging) | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | Med | Classic baseline | Not scalable; ignores heterogeneity |
+| **IDW**<br>(Inverse Distance Weighting) | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | High | Simple; no training | Ignores spatial correlation |
+| **GHM**<br>(Generalised Heterogeneity Model) | ✔ | ✗ | ✗ | ✔ | ✗ | ✗ | Med | Stratified spatial modelling | Non-inductive; fixed graph |
+| [**KCN**](https://arxiv.org/pdf/2306.09463) | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | Med | CNN-based spatial learning | Poor on missing & multi-variate data |
+| [**IGNNK**](https://openreview.net/forum?id=jeBic1U1KXz) | ✗ | ✔ | ✗ | ✗ | ✗ | ✗ | High | Inductive kriging via GNN | No strata; no missing data support |
+| [**INCREASE**](https://arxiv.org/abs/2302.02738) | ✗ | ✔ | ✗ | ✗ | ✗ | ✗ | Med | Good generalisation | No sparse or multivariate input support |
+| [**STGNP**](https://dl.acm.org/doi/pdf/10.1145/3580305.3599372) | ✗ | ✔ | ✗ | ✗ | ✗ | ✔ | Med | Multivariate TS modelling | Poor handling of missing features |
+| [**KITS**](https://arxiv.org/pdf/2311.02565) | ✗ | ✔ | ✔ | ✔ | ✗ | ✗ | Low | Handles sparsity; incremental | Biased by pseudo-nodes |
+| [**SSIN**](https://arxiv.org/pdf/2311.15530) | ✗ | ✔ | ✗ | ✗ | ✗ | ✗ | Med | Lightweight spatial method | No support for missing or multivariate |
+| **AnchorGK**<br>(Proposed) | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | High | Full support for sparse,<br>incomplete, multivariate data | Scaling to larger graphs TBD |
