@@ -11,16 +11,17 @@ The detailed comparisons can be found on:
 
 ### 🔍 **Comparison of Spatial-Temporal Kriging and Graph-Based Models**
 
-| **Model** | **Strata Awareness** | **Inductive Learning** | **Training Strategy** | **Spatial Sparsity** | **Incomplete Features** | **Multivariate** | **Efficiency** | **Strengths** | **Limitations** |
-| :-- | :--------------------: | :----------------------: | :--------------------: | :-------------------: | :----------------------: | :---------------: | :------------: | :-----------: | :-------------- |
-| **OK**<br>(Ordinary Kriging) | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | Moderate | Classic geostatistical baseline | Not scalable; ignores heterogeneity |
-| **IDW**<br>(Inverse Distance Weighting) | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | High | Simple, no training required | Ignores spatial correlation; no uncertainty |
-| **GHM**<br>(Generalised Heterogeneity Model) | ✔ | ✗ | ✗ | ✔ | ✗ | ✗ | Medium | Captures stratified spatial variation | Non-inductive; fixed spatial graph |
-| [**KCN**](https://arxiv.org/pdf/2306.09463) | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | Medium | CNN-based spatial learning | Fails on missing data and multivariate input |
-| [**IGNNK**](https://openreview.net/forum?id=jeBic1U1KXz) | ✗ | ✔ | ✗ | ✗ | ✗ | ✗ | High | Inductive GNN-based kriging | Ignores strata; lacks incomplete feature support |
-| [**INCREASE**](https://arxiv.org/abs/2302.02738) | ✗ | ✔ | ✗ | ✗ | ✗ | ✗ | Medium | Strong inductive ability | Weak for sparse or multivariate settings |
-| [**STGNP**](https://dl.acm.org/doi/pdf/10.1145/3580305.3599372) | ✗ | ✔ | ✗ | ✗ | ✗ | ✔ | Medium | Multivariate spatiotemporal learning | Incomplete feature handling is weak |
-| [**KITS**](https://arxiv.org/pdf/2311.02565) | ✗ | ✔ | ✔ | ✔ | ✗ | ✗ | Low | Supports sparsity and incremental updates | Biased by pseudo nodes; lacks multivariate support |
-| [**SSIN**](https://arxiv.org/pdf/2311.15530) | ✗ | ✔ | ✗ | ✗ | ✗ | ✗ | Medium | Lightweight and spatially aware | No support for incomplete or multivariate data |
-| **AnchorGK**<br>(Proposed) | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | High | Full support for spatial and feature heterogeneity | Scaling to ultra-large graphs remains to be explored |
+| **Model** | **Strata**<br>**Awareness** | **Inductive**<br>**Learning** | **Training**<br>**Strategy** | **Spatial**<br>**Sparsity** | **Incomplete**<br>**Features** | **Multivariate**<br>**Support** | **Efficiency** | **Strengths** | **Limitations** |
+| :-- | :--: | :--: | :--: | :--: | :--: | :--: | :--: | :-- | :-- |
+| **OK**<br>(Ordinary Kriging) | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | Moderate | Classic geostatistical<br>baseline | Not scalable;<br>ignores heterogeneity |
+| **IDW**<br>(Inverse Distance Weighting) | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | High | Simple; no training<br>required | Ignores spatial<br>correlation |
+| **GHM**<br>(Generalised Heterogeneity Model) | ✔ | ✗ | ✗ | ✔ | ✗ | ✗ | Medium | Captures stratified<br>spatial variation | Non-inductive;<br>fixed graph |
+| [**KCN**](https://arxiv.org/pdf/2306.09463) | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | Medium | CNN-based spatial<br>feature learning | Fails on missing<br>or multivariate data |
+| [**IGNNK**](https://openreview.net/forum?id=jeBic1U1KXz) | ✗ | ✔ | ✗ | ✗ | ✗ | ✗ | High | Inductive kriging<br>via GNN | No support for strata;<br>incomplete features |
+| [**INCREASE**](https://arxiv.org/abs/2302.02738) | ✗ | ✔ | ✗ | ✗ | ✗ | ✗ | Medium | Inductive generalisation<br>ability | Lacks support for<br>sparse and multivariate |
+| [**STGNP**](https://dl.acm.org/doi/pdf/10.1145/3580305.3599372) | ✗ | ✔ | ✗ | ✗ | ✗ | ✔ | Medium | Multivariate<br>temporal modeling | Poor handling of<br>incomplete features |
+| [**KITS**](https://arxiv.org/pdf/2311.02565) | ✗ | ✔ | ✔ | ✔ | ✗ | ✗ | Low | Supports sparsity<br>and incremental updates | Biased by pseudo<br>nodes; no multivariate |
+| [**SSIN**](https://arxiv.org/pdf/2311.15530) | ✗ | ✔ | ✗ | ✗ | ✗ | ✗ | Medium | Lightweight and<br>spatially aware | Lacks support for<br>missing/multivariate |
+| **AnchorGK**<br>(Proposed) | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | High | Full support for<br>sparse, incomplete,<br>multivariate data | Scalability to<br>larger graphs TBD |
+
 
