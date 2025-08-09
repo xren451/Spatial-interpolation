@@ -32,3 +32,17 @@ The detailed comparisons can be found on:
 To overcome these limitations, **AnchorGK** introduces an *incremental stratified spatial correlation component* to model **broad region-level spatial semantics** and a *dual-view graph learning layer* to integrate **cross-feature** and **cross-strata information**. This design allows the framework to exploit **diverse spatial** and **feature patterns**, thereby achieving more accurate and robust inference in **sparsely observed regions**.  
 
 ![arch.png](Figures/1.arch.png)
+
+To estimate $\mathcal{Y}$, AnchorGK employs two novel components: (1) Stratified Spatial Correlation Component (SSCC), which establishes the fine-grained estimation of spatial correlations between known locations and unknown locations; and (2) Dual-view Graph Learning Layer (GLL), which integrates the information from relevant features and locations for spatio-temporal kriging. Overall, AnchorGK outperforms all baseline models in terms of both RMSE and MAE across all datasets with statistical significance based on the post-hoc Nemenyi test.
+
+![Main results.png](Figures/2.Main_results.png)
+
+The ablation study across three datasets has been conducted to show the effectiveness of Stratified Spatial Correlation Component (SSCC) and Graph learning Layer (GLL) in AnchorGK.
+
+![Ablation study.png](Figures/3.Main_ablation.png)
+
+AnchorGK also enhance the kriging performance compared to the SOTA methods in the visualization of kriging performance.
+
+![Visualization.png](Figures/4.Visualization.png)
+
+Also, the efficiency can be obtained by AnchorGK from the less training time giving the usage of subgraphs.
