@@ -1,2 +1,0 @@
-Experiment 1 in the following code:
-https://colab.research.google.com/drive/1FMuuLwk7L4B0EZlsmSGgwidzRP4F8-9z?usp=sharing
