@@ -55,6 +55,10 @@ Also, the efficiency can be obtained by AnchorGK from the less training time giv
 
 ## Getting Started
 
+### Toy example
+
+To run AnchorGK with a naive synthetic dataset, executing AnchorGK_syn.ipynb to better understand the architecture.
+
 ### Environment Requirements
 
 To get started, ensure you have Conda installed on your system and follow these steps to set up the environment:
