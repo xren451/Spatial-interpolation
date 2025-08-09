@@ -46,3 +46,5 @@ AnchorGK also enhance the kriging performance compared to the SOTA methods in th
 ![Visualization.png](Figures/4.Visualization.png)
 
 Also, the efficiency can be obtained by AnchorGK from the less training time giving the usage of subgraphs.
+
+![Time.png](Figures/5.Time.png)
