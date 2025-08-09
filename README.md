@@ -31,4 +31,4 @@ The detailed comparisons can be found on:
 
 To overcome these limitations, **AnchorGK** introduces an *incremental stratified spatial correlation component* to model **broad region-level spatial semantics** and a *dual-view graph learning layer* to integrate **cross-feature** and **cross-strata information**. This design allows the framework to exploit **diverse spatial** and **feature patterns**, thereby achieving more accurate and robust inference in **sparsely observed regions**.  
 
-![arch.png](Figures/1.arch.jpg)
+![arch.png](Figures/1.arch.png)
