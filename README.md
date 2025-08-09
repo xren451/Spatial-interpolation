@@ -25,6 +25,10 @@ The detailed comparisons can be found on:
 | [**SSIN**](https://arxiv.org/pdf/2311.15530) | ✗ | ✔ | ✗ | ✗ | ✗ | ✗ | Med | Lightweight spatial method | No support for missing or multivariate |
 | **AnchorGK**<br>(Proposed) | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | High | Full support for sparse,<br>incomplete, multivariate data | Scaling to larger graphs TBD |
 
+We also provide the comparison in the following figure:
+
+![Comparison.png](Figures/6.Comparison.png)
+
 ## Introduction
 
 **AnchorGK** is the advanced successor to [**KITS**](https://arxiv.org/pdf/2311.02565) and [**SSIN**](https://arxiv.org/pdf/2311.15530) in inductive spatio-temporal kriging. While these methods either depend on *dense node-wise correlations* or process features separately, they fail to effectively capture **region-level structures** and **cross-feature dependencies** in scenarios with **spatial sparsity** and **incomplete features**.  
