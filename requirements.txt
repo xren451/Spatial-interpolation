@@ -1,0 +1,15 @@
+numpy
+matplotlib
+pandas
+scikit-learn
+torch
+torchvision
+torchaudio
+torch-geometric
+tensorflow
+spektral
+filterpy
+shapely
+scipy
+six
+openpyxl
