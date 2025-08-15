@@ -9,11 +9,3 @@ We need to pre-process UScoast dataset. Generate a folder named "UScoast_raw", a
 ### Shenzhen and Tehiku
 
 For Shenzhen and Tehiku, we can directly put them into data folder.
-
-
-### Reproduction the Baseline Results
-
-You can also reproduce all the baseline models following:
-```
-sh run_ablation.sh
-```
