@@ -75,34 +75,3 @@ All the datasets needed for AnchorGK can be obtained from the [[Baidu Netdisk]](
 Create a separate folder named ```./dataset``` and place all the CSV files in this directory. 
 **Note**: Place the CSV files directly into this directory, such as "./dataset/ETTh1.csv"
 
-
-### Training Scripts
-
-The training scripts for replicating the AnchorGK results are available at:
-
-```
-./scripts/AnchorGK
-```
-
-### Reproduction of the Main Results
-
-You can reproduce the main results of AnchorGK with the following code.
-
-```
-conda create -n AnchorGK python=3.8
-conda activate AnchorGK
-pip install -r requirements.txt
-sh run_main.sh
-```
-
-For your convenience, we have provided the **results** of "sh run_main.sh":
-```
-./result.txt
-```
-
-### Reproduction the Baseline Results
-
-You can also reproduce all the baseline models following:
-```
-sh run_ablation.sh
-```
