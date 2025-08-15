@@ -71,8 +71,7 @@ pip install -r requirements.txt
 
 ### Data Preparation
 
-All the datasets needed for AnchorGK can be obtained from the [[Baidu Netdisk]](通过网盘分享的文件：AnchorGK
-链接: https://pan.baidu.com/s/1C4_PmbIozKUaWS53f4_jXA?pwd=ix5h 提取码: ix5h) that introduced in previous works such as [**DAMR**](https://dl.acm.org/doi/abs/10.1145/3589333) and [**FFA**](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/Forecasting20air20qualtiy-kdd2015-camera-ready.pdf). 
+All the datasets needed for AnchorGK can be obtained from the [[Baidu Netdisk]](https://pan.baidu.com/s/1C4_PmbIozKUaWS53f4_jXA?pwd=ix5h) ( Extraction code: ix5h) that introduced in previous works such as [**DAMR**](https://dl.acm.org/doi/abs/10.1145/3589333) and [**FFA**](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/Forecasting20air20qualtiy-kdd2015-camera-ready.pdf). 
 Create a separate folder named ```./dataset``` and place all the CSV files in this directory. 
 **Note**: Place the CSV files directly into this directory, such as "./dataset/ETTh1.csv"
 
