@@ -81,7 +81,13 @@ Create a separate folder named ```./dataset``` and place all the CSV files in th
 The training scripts for replicating the AnchorGK results are available at:
 
 ```
-./scripts/AnchorGK
+python main.py \
+  --dataset UScoast \
+  --ndbc-values data/NDBC/all.npy \
+  --ndbc-stations data/NDBC/Station_info_edit.csv \
+  --K 5 --num-subdivisions 5 --king-select 5 \
+  --weight-scalar 0.2 --seed 42 \
+  --out-dir outputs/UScoast_run1
 ```
 
 ### Reproduction of the Main Results
@@ -92,17 +98,7 @@ You can reproduce the main results of AnchorGK with the following code.
 conda create -n AnchorGK python=3.8
 conda activate AnchorGK
 pip install -r requirements.txt
-sh run_main.sh
+sh ./scripts/run_anchor_gk.sh
 ```
 
-For your convenience, we have provided the **results** of "sh run_main.sh":
-```
-./result.txt
-```
 
-### Reproduction the Baseline Results
-
-You can also reproduce all the baseline models following:
-```
-sh run_ablation.sh
-```
